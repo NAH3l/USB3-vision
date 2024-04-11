@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?fileVersion 4.0.0?><cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
+	<storageModule moduleId="org.eclipse.cdt.core.settings">
+		<cconfiguration id="com.qnx.qcc.toolChain.1262719550">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="com.qnx.qcc.toolChain.1262719550" moduleId="org.eclipse.cdt.core.settings" name="armv7le-debug">
+				<externalSettings/>
+				<extensions>
+					<extension id="com.qnx.tools.ide.qde.core.QDEBynaryParser" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="com.qnx.tools.ide.qde.core.QDELinkerErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" description="" id="com.qnx.qcc.toolChain.1262719550" name="armv7le-debug" parent="org.eclipse.cdt.build.core.emptycfg">
+					<folderInfo id="com.qnx.qcc.toolChain.1262719550.128654199" name="/" resourcePath="">
+						<toolChain id="com.qnx.qcc.toolChain.1822492401" name="QNX QCC" nonInternalBuilderId="cdt.managedbuild.target.gnu.builder.base" superClass="com.qnx.qcc.toolChain">
+							<option id="com.qnx.qcc.option.os.493619039" name="Target OS:" superClass="com.qnx.qcc.option.os" useByScannerDiscovery="false"/>
+							<option id="com.qnx.qcc.option.cpu.522959709" name="Target CPU:" superClass="com.qnx.qcc.option.cpu" useByScannerDiscovery="false" value="com.qnx.qcc.option.gen.cpu.armle-v7" valueType="enumerated"/>
+							<option id="com.qnx.qcc.option.compiler.524651316" name="Compiler:" superClass="com.qnx.qcc.option.compiler" useByScannerDiscovery="false"/>
+							<option id="com.qnx.qcc.option.runtime.1220812153" name="C++ Runtime:" superClass="com.qnx.qcc.option.runtime" useByScannerDiscovery="false"/>
+							<option id="com.qnx.qcc.option.buildtype.580971258" name="Build Type:" superClass="com.qnx.qcc.option.buildtype" useByScannerDiscovery="false"/>
+							<targetPlatform archList="all" binaryParser="com.qnx.tools.ide.qde.core.QDEBynaryParser" id="com.qnx.qcc.targetPlatform.957731570" osList="all" superClass="com.qnx.qcc.targetPlatform"/>
+							<builder autoBuildTarget="all" buildPath="${workspace_loc:/Camera_USB}/armv7le-debug" cleanBuildTarget="clean" id="org.eclipse.cdt.build.core.internal.builder.1983655024" incrementalBuildTarget="all" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CDT Internal Builder" parallelBuildOn="true" parallelizationNumber="optimal" superClass="org.eclipse.cdt.build.core.internal.builder"/>
+							<tool id="com.qnx.qcc.tool.compiler.940363752" name="QCC Compiler" superClass="com.qnx.qcc.tool.compiler">
+								<option id="com.qnx.qcc.option.compiler.optlevel.1856294289" name="Optimization Level" superClass="com.qnx.qcc.option.compiler.optlevel" useByScannerDiscovery="false" value="com.qnx.qcc.option.compiler.optlevel.1" valueType="enumerated"/>
+								<option id="com.qnx.qcc.option.compiler.includePath.1404125563" name="Include Directories (-I)" superClass="com.qnx.qcc.option.compiler.includePath" useByScannerDiscovery="false"/>
+								<option id="com.qnx.qcc.option.compiler.qccoptions.1771740198" name="QCC Options" superClass="com.qnx.qcc.option.compiler.qccoptions" useByScannerDiscovery="false" valueType="stringList"/>
+								<option id="com.qnx.qcc.option.compiler.profile2.1811782884" name="Build for Profiling (Function Instrumentation) (-finstrument-functions)" superClass="com.qnx.qcc.option.compiler.profile2" useByScannerDiscovery="false" value="true" valueType="boolean"/>
+								<option id="com.qnx.qcc.option.compiler.profile.2082777596" name="Build for Profiling (Call Count) (-p)" superClass="com.qnx.qcc.option.compiler.profile" useByScannerDiscovery="false" value="true" valueType="boolean"/>
+								<option id="com.qnx.qcc.option.compile.debug.1905424224" name="Debug (-g)" superClass="com.qnx.qcc.option.compile.debug" useByScannerDiscovery="false" value="true" valueType="boolean"/>
+								<inputType id="com.qnx.qcc.inputType.compiler.84406803" superClass="com.qnx.qcc.inputType.compiler"/>
+							</tool>
+							<tool id="com.qnx.qcc.tool.assembler.1376047027" name="QCC Assembler" superClass="com.qnx.qcc.tool.assembler">
+								<option id="com.qnx.qcc.option.assembler.includePath.449848390" name="Include Directories (-I)" superClass="com.qnx.qcc.option.assembler.includePath" useByScannerDiscovery="false"/>
+								<option id="com.qnx.qcc.option.assembler.debug.1942140532" name="Debug (-g)" superClass="com.qnx.qcc.option.assembler.debug" useByScannerDiscovery="false" value="true" valueType="boolean"/>
+								<inputType id="com.qnx.qcc.inputType.assembler.2064935754" superClass="com.qnx.qcc.inputType.assembler"/>
+							</tool>
+							<tool id="com.qnx.qcc.tool.linker.1092745648" name="QCC Linker" superClass="com.qnx.qcc.tool.linker">
+								<option id="com.qnx.qcc.option.linker.langcpp.1189787083" name="C++ (-lang-c++)" superClass="com.qnx.qcc.option.linker.langcpp" useByScannerDiscovery="false" value="true" valueType="boolean"/>
+								<option id="com.qnx.qcc.option.linker.libraryPaths.535069068" name="Library Paths (-L)" superClass="com.qnx.qcc.option.linker.libraryPaths" useByScannerDiscovery="false" valueType="libPaths"/>
+								<option id="com.qnx.qcc.option.linker.libraries.572805965" name="Libraries (-l)" superClass="com.qnx.qcc.option.linker.libraries" useByScannerDiscovery="false" valueType="libs"/>
+								<option id="com.qnx.qcc.option.linker.profile2.20557658" name="Build for Profiling (Function Instrumentation) (-lprofiling)" superClass="com.qnx.qcc.option.linker.profile2" useByScannerDiscovery="false" value="true" valueType="boolean"/>
+								<option id="com.qnx.qcc.option.linker.profile.1626797750" name="Build for Profiling (Call Count) (-p)" superClass="com.qnx.qcc.option.linker.profile" useByScannerDiscovery="false" value="true" valueType="boolean"/>
+								<option id="com.qnx.qcc.option.linker.debug.1859232810" name="Debug (-g)" superClass="com.qnx.qcc.option.linker.debug" useByScannerDiscovery="false" value="true" valueType="boolean"/>
+								<option id="com.qnx.qcc.option.linker.qccoptions.1197591866" superClass="com.qnx.qcc.option.linker.qccoptions" useByScannerDiscovery="false" valueType="stringList">
+									<listOptionValue builtIn="false" value="-Bdynamic C:/Users/nverdier/ide-7.0-workspace/Camera_USB/lib/libusbdi.so"/>
+								</option>
+								<inputType id="com.qnx.qcc.inputType.linker.3151703" superClass="com.qnx.qcc.inputType.linker">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+							<tool id="com.qnx.qcc.tool.archiver.1041639170" name="QCC Archiver" superClass="com.qnx.qcc.tool.archiver"/>
+						</toolChain>
+					</folderInfo>
+					<sourceEntries>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+					</sourceEntries>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
+		</cconfiguration>
+	</storageModule>
+	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+		<project id="Camera_USB.null.1007218123" name="Camera_USB"/>
+	</storageModule>
+	<storageModule moduleId="scannerConfiguration">
+		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		<scannerConfigBuildInfo instanceId="com.qnx.qcc.toolChain.887394259">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.qnx.tools.ide.qde.managedbuilder.core.qccScannerInfo"/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="com.qnx.qcc.toolChain.433198286">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.qnx.tools.ide.qde.managedbuilder.core.qccScannerInfo"/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="com.qnx.qcc.toolChain.1965263368">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.qnx.tools.ide.qde.managedbuilder.core.qccScannerInfo"/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="com.qnx.qcc.toolChain.1262719550">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.qnx.tools.ide.qde.managedbuilder.core.qccScannerInfo"/>
+		</scannerConfigBuildInfo>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="armv7le-debug">
+			<resource resourceType="PROJECT" workspacePath="/Camera_USB"/>
+		</configuration>
+		<configuration configurationName="armv7le-coverage">
+			<resource resourceType="PROJECT" workspacePath="/Camera_USB"/>
+		</configuration>
+		<configuration configurationName="armv7le-profile">
+			<resource resourceType="PROJECT" workspacePath="/Camera_USB"/>
+		</configuration>
+		<configuration configurationName="armv7le-release">
+			<resource resourceType="PROJECT" workspacePath="/Camera_USB"/>
+		</configuration>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets">
+		<buildTargets/>
+	</storageModule>
+</cproject>

@@ -1,0 +1,25 @@
+Changement Linux -> QNX 
+
+Linux :                                                                   QNX :
+u3v_control.c 						                                      u3v_control.cpp
+kzalloc(<size>, GFP_KERNEL)						                          malloc(size_t size)
+kfree(const void *ptr)								                      free(void* ptr)
+mutex_init(struct mutex *mtx)					                          pthread_mutex_init(pthread_mutex_t* mutex,const pthread_mutexattr_t* attr) 
+mutex_lock(struct mutex *mtx)				                              pthread_mutex_lock(pthread_mutex_t* mutex )
+mutex_unlock(struct mutex *mtx)					                          pthread_mutex_unlock(pthread_mutex_t* mutex )
+le32_to_cpu							                                      ENDIAN_LE32
+le16_to_cpu						                                          ENDIAN_LE16
+cpu_to_le32							                                      ENDIAN_LE32
+cpu_to_le16							                                      ENDIAN_LE16
+wait_for_completion	(struct completion *)				                  wait_for_completion(struct completion *)
+usb_bulk_msg(struct usb_device * usb_dev,                                 usb_bulk_msg(struct usbd_device *dev,)
+			 unsigned int pipe,                                                        struct usbd_pipe *pipe,
+			 void * data,                                                              void *data,
+			 int len,                                                                  int len,
+			 int * actual_length,                                                      int *actual_length,
+			 int timeout)					                                           int timeout
+                                                                                       uint32_t flags,
+																					   struct u3v_device *u3v
+u3v_stream.c 						                                      u3v_stream.cpp
+get_num_pages(uintptr_t addr, size_t num_bytes)		                      get_num_pages(uintptr_t addr, size_t num_bytes)
+init_usb_anchor(struct usb_anchor *anchor)                                init_usb_anchor(struct usb_anchor *anchor)
