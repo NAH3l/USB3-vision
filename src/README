@@ -7,7 +7,7 @@ Interfaces de contrôle :
 
 Endpoint de contrôle 0 : Ce point de terminaison standard USB permet de contrôler les aspects basiques de l'appareil.
 
-Interface de contrôle de l'appareil (DCI) : Cette interface spécifique à USB3 Vision permet de gérer les        fonctionnalités propres à la vision, comme la configuration de l'image, le déclenchement de l’acquisition et le contrôle des paramètres de la caméra.
+Interface de contrôle de l'appareil (DCI) : Cette interface spécifique à USB3 Vision permet de gérer les fonctionnalités propres à la vision, comme la configuration de l'image, le déclenchement de l’acquisition et le contrôle des paramètres de la caméra.
 
 Interface d'événements de l'appareil (DEI) (optionnelle) : Cette interface permet à l'appareil d’envoyer des événements asynchrones à l'hôte, tels que des changements d'état ou des erreurs.
 
