@@ -1,9 +1,21 @@
 #include <errno.h>
 #include <sys/usbdi.h>
+#include <sys/usb100.h>
 #include <iostream>
 #include <stdlib.h>
+#include <gulliver.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <pthread.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <sys/syspage.h>
+#include <atomic.h>
+#include <xmlparse.h>
 
 #include "u3v.h"
+#include "u3v_shared.h"
 #include "u3v_event.h"
 #include "u3v_stream.h"
 #include "u3v_control.h"
@@ -75,133 +87,141 @@ int usb_control_msg(struct usbd_device *dev, struct usbd_pipe *pipe, uint8_t req
 }
 
 /* Reproduis la fonction usb_bulk_msg de Linux */
-int usb_bulk_msg(struct usbd_device *usb_dev, struct usbd_pipe *pipe, void *data, uint32_t len, uint32_t *actual_length, int timeout) {
-    struct usbd_urb *urb;
+int usb_bulk_msg(struct usbd_device *device, unsigned int pipe, void *data, int len, int *actual_length, int timeout) {
+    struct usbd_urb *urb = NULL;
+    struct usbd_pipe *usb_pipe = NULL;
     int ret;
+    uint32_t urb_status;
+    uint8_t endpoint_num;
+    usbd_device_descriptor_t *device_desc;
 
-    // Allocation de l'URB
+    /* Check for valid arguments */
+    if (!device || !data || len < 0 || !actual_length) {
+        std::cerr << "Invalid arguments\n";
+        return -EINVAL;
+    }
+
+    /* Create a URB */
     urb = usbd_alloc_urb(NULL);
     if (!urb) {
-        return -ENOMEM; // Insufficient memory available
+        std::cerr << "Failed to allocate URB\n";
+        return -ENOMEM;
     }
 
-    // Configuration de l'URB pour le message en vrac
-    ret = usbd_setup_bulk(urb, URB_DIR_OUT, data, len);
+    /* Open the pipe based on the endpoint direction */
+    if (pipe & USB_ENDPOINT_IN) {
+        ret = usbd_open_pipe(device, NULL, &usb_pipe);
+    } else {
+        ret = usbd_open_pipe(device, NULL, &usb_pipe);
+    }
     if (ret != EOK) {
+        std::cerr << "Failed to open pipe\n";
         usbd_free_urb(urb);
         return ret;
     }
 
-    // Soumission de l'URB
-    ret = usbd_io(urb, pipe, NULL, NULL, timeout);
+    /* Get endpoint number */
+    endpoint_num = usbd_pipe_endpoint(usb_pipe);
+
+    /* Set up the URB for bulk transfer */
+    if (pipe & USB_ENDPOINT_IN) {
+        ret = usbd_setup_bulk(urb, URB_DIR_IN, data, len);
+    } else {
+        ret = usbd_setup_bulk(urb, URB_DIR_OUT, data, len);
+    }
     if (ret != EOK) {
+        std::cerr << "Failed to set up URB\n";
         usbd_free_urb(urb);
+        usbd_close_pipe(usb_pipe);
         return ret;
     }
 
-    // Attente de la complétion de l'URB
-    ret = usbd_urb_status(urb, NULL, actual_length);
+    /* Get device descriptor for information */
+    device_desc = usbd_device_descriptor(device, NULL);
+
+    /* Submit the URB and wait for completion */
+    std::cout << "Device: Vendor ID: 0x" << std::hex << device_desc->idVendor << ", Product ID: 0x" << device_desc->idProduct << std::dec << "\n";
+    std::cout << "Endpoint: " << static_cast<int>(endpoint_num) << ", Direction: " << ((pipe & USB_ENDPOINT_IN) ? "IN" : "OUT") << ", Transfer Length: " << len << "\n";
+    ret = usbd_io(urb, usb_pipe, NULL, NULL, timeout);
     if (ret != EOK) {
-        // Si une erreur survient pendant l'attente, libérer l'URB
-        usbd_free_urb(urb);
+    	std::cerr << "URB transfer failed\n";
+    	usbd_free_urb(urb);
+        usbd_close_pipe(usb_pipe);
         return ret;
     }
 
-    // Libération de l'URB
+    /* Get the actual length of data transferred and URB status */
+    ret = usbd_urb_status(urb, &urb_status, (uint32_t *)actual_length);
+
+    /* Print status information */
+    std::cout << "URB transfer completed. Status: 0x" << std::hex << urb_status << ", Actual Length: " << *actual_length << std::dec << "\n";
+
+    /* Free the URB and close the pipe */
     usbd_free_urb(urb);
-
-    return EOK; // Succès
-}
-
-/* Reproduis la fonction usb_sndbulkpipe de Linux */
-unsigned int usb_sndbulkpipe(struct usbd_device *dev, struct usbd_pipe *pipe) {
-    // Utilisation de usbd_pipe_endpoint pour récupérer le numéro de l'endpoint
-    uint32_t endpoint_num = usbd_pipe_endpoint(pipe);
-
-    // Maintenant, vous pouvez utiliser 'endpoint_num' comme nécessaire dans votre programme
-    return endpoint_num;
-}
-
-/* Reproduis la fonction usb_endpoint_num de Linux */
-int usb_endpoint_num(const struct usbd_endpoint_descriptor *epd) {
-    // Vérifier si la structure est valide
-    if (!epd) {
-        // Gérer l'erreur si nécessaire
-        return -1; // Valeur d'erreur
-    }
-
-    // Extraire le numéro de l'endpoint à partir de la structure usbd_endpoint_descriptor
-    return (int)(epd->bEndpointAddress);
-}
-
-/* Reproduis la fonction usb_rcvbulkpipe de Linux */
-unsigned int usb_rcvbulkpipe(struct usbd_device *dev, unsigned int endpoint) {
-    struct usbd_pipe *pipe;
-
-    // Utilisation de usbd_open_pipe pour initialiser le pipe associé à l'endpoint
-    int ret = usbd_open_pipe(dev, NULL, &pipe);
-    if (ret != EOK) {
-        // Gérer l'erreur si nécessaire
-        return NULL;
-    }
-
-    return (unsigned int)pipe;
-}
-
-unsigned int usb_sndctrlpipe(struct usbd_device *dev, unsigned int endpoint) {
-    struct usbd_pipe *pipe;
-
-    // Ouvrir un pipe de contrôle OUT pour le périphérique USB et l'endpoint spécifié
-    int ret = usbd_open_pipe(dev, NULL, &pipe);
-    if (ret != EOK) {
-        // Gérer l'erreur si nécessaire
-        return NULL;
-    }
-
-    return (unsigned int)pipe;
-}
-
-/* Reproduis la fonction usb_clear_halt de Linux */
-int usb_clear_halt(struct usbd_device *dev, struct usbd_pipe *pipe) {
-    // Utilisation de usbd_reset_pipe pour effacer la condition de stagnation (stall)
-    int ret = usbd_reset_pipe(pipe);
-    if (ret != EOK) {
-        // Gestion de l'erreur
-    }
+    usbd_close_pipe(usb_pipe);
 
     return ret;
 }
 
-int wait_for_completion(struct completion *comp) {
-    if (comp == NULL) {
-    	std::cout << "Error, completion is NULL" << std::endl;
+/*Reproduis la fonction usb_endpoint_num de Linux */
+int qnx_usb_endpoint_num(const usbd_endpoint_descriptor_t *epd) {
+    return epd->bEndpointAddress & USB_ENDPOINT_MASK;
+}
+
+/*Reproduis la fonction usb_rcvbulkpipe de Linux */
+unsigned int qnx_usb_rcvbulkpipe(struct usbd_device *device, unsigned int endpoint_num) {
+    usbd_endpoint_descriptor_t *epd;
+
+    // Get the endpoint descriptor
+    epd = usbd_endpoint_descriptor(device, 0, 0, 0, endpoint_num, NULL);
+
+    // Check if it's a bulk IN endpoint
+    if ((epd->bmAttributes & USB_ENDPOINT_MASK) == USB_ATTRIB_BULK && (epd->bEndpointAddress & USB_ENDPOINT_MASK) == USB_ENDPOINT_IN) {
+        // Construct the pipe value using USB_ATTRIB_BULK and USB_DIRECTION_HOST
+        return ((USB_ATTRIB_BULK << 30) | (endpoint_num << 15) | USB_DIRECTION_HOST);
+    } else {
+        // Handle error or return an invalid pipe value
+        return 0; // or a specific error code
     }
+}
 
-    pthread_mutex_lock(&comp->mutex);
+/*Reproduis la fonction usb_sndbulkpipe de Linux */
+unsigned int qnx_usb_sndbulkpipe(struct usbd_device *device, unsigned int endpoint_num) {
+    usbd_endpoint_descriptor_t *epd;
 
-    while (!comp->complete) {
-    	pthread_cond_wait(&comp->cond, &comp->mutex);
+    // Get the endpoint descriptor
+    epd = usbd_endpoint_descriptor(device, 0, 0, 0, endpoint_num, NULL);
+
+    // Check if it's a bulk OUT endpoint
+    if ((epd->bmAttributes & USB_ENDPOINT_MASK) == USB_ATTRIB_BULK && (epd->bEndpointAddress & USB_ENDPOINT_MASK) == USB_ENDPOINT_OUT) {
+        // Construct the pipe value using USB_ATTRIB_BULK and USB_DIRECTION_HOST
+        return ((USB_ATTRIB_BULK << 30) | (endpoint_num << 15) | USB_DIRECTION_DEVICE);
+    } else {
+        // Handle error or return an invalid pipe value
+        return 0; // or a specific error code
     }
-
-    pthread_mutex_unlock(&comp->mutex);
-
-    return 0;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/* Function for synchronisation*/
+void init_completion(pthread_mutex_t mutex, pthread_cond_t cond, int done) {
+  pthread_mutex_init(&mutex, NULL);
+  pthread_cond_init(&cond, NULL);
+  done = 0;
 }
 
-// Fonction pour initialiser une complétion
-void init_completion(struct completion *comp) {
-    pthread_mutex_init(&comp->mutex, NULL);
-    pthread_cond_init(&comp->cond, NULL);
-    comp->complete = false;
+void wait_for_completion(pthread_mutex_t mutex, pthread_cond_t cond, int done) {
+  pthread_mutex_lock(&mutex);
+  while (!done) {
+    pthread_cond_wait(&cond, &mutex);
+  }
+  pthread_mutex_unlock(&mutex);
 }
 
-// Fonction pour signaler à tous les threads en attente sur cette complétion
-void complete_all(struct completion *comp) {
-    pthread_mutex_lock(&comp->mutex);
-    comp->complete = true;
-    pthread_cond_broadcast(&comp->cond); // Réveille tous les threads en attente
-    pthread_mutex_unlock(&comp->mutex);
+void completion_complete_all(pthread_mutex_t mutex, pthread_cond_t cond, int done) {
+  pthread_mutex_lock(&mutex);
+  done = 1;
+  pthread_cond_broadcast(&cond);
+  pthread_mutex_unlock(&mutex);
 }
-
 
 

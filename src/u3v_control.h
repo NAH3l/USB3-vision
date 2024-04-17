@@ -3,8 +3,19 @@
 
 #include <errno.h>
 #include <sys/usbdi.h>
+#include <sys/usb100.h>
 #include <iostream>
+#include <stdlib.h>
+#include <gulliver.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <pthread.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <sys/syspage.h>
+#include <atomic.h>
+#include <xmlparse.h>
 
 #include "u3v.h"
 #include "u3v_shared.h"
@@ -18,20 +29,20 @@
 
 struct u3v_control {
 	struct u3v_device *u3v_dev;
+	struct usbd_pipe* control_pipe;
 	pthread_mutex_t read_write_lock;
 	uint8_t *ack_buffer;
 	uint32_t max_ack_transfer_size;
 	uint8_t *cmd_buffer;
 	uint32_t max_cmd_transfer_size;
 	uint16_t request_id;
-	uint16_t max_request_id; /* Maximum id value we can have before we loop back around */
 	uint32_t u3v_timeout; /* Maximum device response time in ms */
 };
 
-
-
 int u3v_create_control(struct u3v_device *u3v);
-int u3v_read_mem(struct u3v_control *ctrl, uint32_t transfer_size, uint32_t *bytes_read, uint64_t address, void *kernel_buffer, void *user_buffer, uint32_t flags);
-int u3v_write_mem(struct u3v_control *ctrl, uint32_t transfer_size, uint32_t *bytes_written, uint64_t address, const void *kernel_buffer, const void *user_buffer, uint32_t flags);
+void u3v_destroy_control(struct u3v_device *u3v);
+
+int u3v_read_memory(struct u3v_control *ctrl, _Uint32t transfer_size, _Uint32t *bytes_read, _Uint64t address, void *kernel_buffer, void *user_buffer);
+int u3v_write_memory(struct u3v_control *ctrl, _Uint32t transfer_size, _Uint32t *bytes_written, _Uint64t address, const void *kernel_buffer, const void *user_buffer);
 
 #endif

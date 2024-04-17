@@ -43,7 +43,8 @@
 #define U3V_ERR_MAX_RANGE				          (U3V_ERR_BASE + 0xFFFF)
 
 #define U3V_CONTROL_PREFIX                        0x43563355
-#define U3V_CTRL_ENDPOINT                         0
+//#define U3V_CTRL_ENDPOINT                         0
+//Utiliser USB_ENDPOINT_CONTROL de usb100.h
 
 /* Constants for leader and trailer "magic key" */
 #define U3V_LEADER	                              0x4C563355 /* "U3VL" */

@@ -3,8 +3,19 @@
 
 #include <errno.h>
 #include <sys/usbdi.h>
+#include <sys/usb100.h>
 #include <iostream>
-#include <sys/iofunc.h>
+#include <stdlib.h>
+#include <gulliver.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <pthread.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <sys/syspage.h>
+#include <atomic.h>
+#include <xmlparse.h>
 
 #include "u3v.h"
 #include "u3v_shared.h"
@@ -33,18 +44,19 @@
 #define U3V_TIMEOUT 					5000
 #define	U3V_DEV_DISCONNECTED 			1
 
-
 struct completion {
-    pthread_mutex_t mutex;
-    pthread_cond_t cond;
-    bool complete;
+  pthread_mutex_t mutex;
+  pthread_cond_t cond;
+  int done;
 };
 
 struct u3v_interface_info {
+	struct usbd_urb *urb;
 	usbd_endpoint_descriptor_t *bulk_in;
 	usbd_endpoint_descriptor_t *bulk_out;
-	struct usbd_urb *urb;
-	struct completion *ioctl_complete;
+	pthread_mutex_t mutex_ioctl_complete;
+	pthread_cond_t cond_ioctl_complete;
+	int done_ioctl_complete;
 	void *interface_ptr;
 	pthread_mutex_t ioctl_count_lock;
 	pthread_mutex_t interface_lock;
@@ -61,15 +73,15 @@ struct u3v_device {
 	struct u3v_interface_info event_info;
 	struct u3v_interface_info stream_info;
 	struct usbd_pipe* control_pipe;
-	struct usbd_device* udev;
-	struct usb_interface *intf;
-	struct usbd_device *device;
+	struct usbd_pipe* streaming_pipe;
+	struct device *device;
+	struct usbd_device *udev;
+	struct usbd_interface *intf;
 	struct u3v_device_info *u3v_info; /* device attributes */
-	struct usb_driver *u3v_driver;
-	int device_state;
+	//struct usb_driver *u3v_driver;
 	bool stalling_disabled;
 	bool device_connected;
-
+	int device_state;
 };
 
 /*
@@ -104,16 +116,15 @@ int min	(size_t a, size_t b);
 int max(size_t a, size_t b);
 
 /* Function for usb transfer */
-int usb_bulk_msg(struct usbd_device *usb_dev, struct usbd_pipe *pipe, void *data, uint32_t len, uint32_t *actual_length, int timeout);
-int usb_control_msg(struct usbd_device *dev, struct usbd_pipe *pipe, uint8_t request, uint8_t requesttype, uint16_t value, uint16_t index, void *data, uint16_t size, int timeout);
-unsigned int usb_sndbulkpipe(struct usbd_device *dev, struct usbd_pipe *pipe);
-unsigned int usb_rcvbulkpipe(struct usbd_device *dev, unsigned int endpoint);
-unsigned int usb_sndctrlpipe(struct usbd_device *dev, unsigned int endpoint);
-int usb_endpoint_num(const struct usbd_endpoint_descriptor *epd);
-int usb_clear_halt(struct usbd_device *dev, struct usbd_pipe *pipe);
+int usb_bulk_msg(struct usbd_device *device, unsigned int pipe, void *data, int len, int *actual_length, int timeout);
+unsigned int qnx_usb_rcvbulkpipe(struct usbd_device *device, unsigned int endpoint_num);
+unsigned int qnx_usb_sndbulkpipe(struct usbd_device *device, unsigned int endpoint_num);
+int qnx_usb_endpoint_num(const usbd_endpoint_descriptor_t *epd);
 
-int wait_for_completion(struct completion *comp);
-void init_completion(struct completion *comp);
-void complete_all(struct completion *comp);
-void init_usb_anchor(struct usb_anchor *anchor);
+
+/* Function for synchronisation */
+void init_completion(pthread_mutex_t mutex, pthread_cond_t cond, int done);
+void wait_for_completion(pthread_mutex_t mutex, pthread_cond_t cond, int done);
+void completion_complete_all(pthread_mutex_t mutex, pthread_cond_t cond, int done);
+
 #endif /*  _U3V_H_ */
