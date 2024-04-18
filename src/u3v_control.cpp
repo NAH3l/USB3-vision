@@ -69,6 +69,9 @@ int u3v_create_control(struct u3v_device *u3v) {
 	/* id is preincremented so we want it to start at 0 */
 	ctrl->request_id = -1;
 
+    /* Set the maximum id value so that we can skip 0 once we overflow */
+    ctrl->max_request_id = -1;
+
 	ctrl->ack_buffer = (uint8_t *)malloc(ctrl->max_ack_transfer_size);
 	ctrl->cmd_buffer = (uint8_t *)malloc(ctrl->max_cmd_transfer_size);
 
@@ -86,7 +89,7 @@ int u3v_create_control(struct u3v_device *u3v) {
 	 * Query the device for max response time, and max buffer sizes,
 	 * updating control attributes if needed
 	 */
-	ret = u3v_read_memory(ctrl, sizeof(_Uint32t), &bytes_read, ABRM_MAX_DEVICE_RESPONSE_TIME, &max_response, NULL);
+	ret = u3v_read_memory(ctrl, sizeof(_Uint32t), &bytes_read, ABRM_MAX_DEVICE_RESPONSE_TIME, &max_response);
 
 	if ((ret < 0) || (bytes_read != sizeof(_Uint32t))) {
 		//dev_err(dev, "%s: Error reading max device response time\n", __func__);
@@ -95,14 +98,14 @@ int u3v_create_control(struct u3v_device *u3v) {
 
 	ctrl->u3v_timeout = max((_Uint32t)(U3V_TIMEOUT), ENDIAN_LE32(max_response));
 
-	ret = u3v_read_memory(ctrl, sizeof(_Uint64t), &bytes_read, ABRM_SBRM_ADDRESS, &sbrm_address, NULL);
+	ret = u3v_read_memory(ctrl, sizeof(_Uint64t), &bytes_read, ABRM_SBRM_ADDRESS, &sbrm_address);
 
 	if ((ret < 0) || (bytes_read != sizeof(_Uint64t))) {
 		//dev_err(dev, "%s: Error reading SBRM address\n", __func__);
 		goto error;
 	}
 
-	ret = u3v_read_memory(ctrl, sizeof(_Uint32t), &bytes_read, sbrm_address + SBRM_MAX_CMD_TRANSFER, &cmd_buffer_size, NULL);
+	ret = u3v_read_memory(ctrl, sizeof(_Uint32t), &bytes_read, sbrm_address + SBRM_MAX_CMD_TRANSFER, &cmd_buffer_size);
 
 	if ((ret < 0) || (bytes_read != sizeof(_Uint32t))) {
 		//dev_err(dev, "%s: Error reading maximum command transfer size\n", __func__);
@@ -111,7 +114,7 @@ int u3v_create_control(struct u3v_device *u3v) {
 
 	ctrl->max_cmd_transfer_size = min(ctrl->max_cmd_transfer_size, ENDIAN_LE32(cmd_buffer_size));
 
-	ret = u3v_read_memory(ctrl, sizeof(_Uint32t), &bytes_read, sbrm_address + SBRM_MAX_ACK_TRANSFER, &ack_buffer_size, NULL);
+	ret = u3v_read_memory(ctrl, sizeof(_Uint32t), &bytes_read, sbrm_address + SBRM_MAX_ACK_TRANSFER, &ack_buffer_size);
 
 	if ((ret < 0) || (bytes_read != sizeof(_Uint32t))) {
 		//dev_err(dev, "%s: Error reading maximum ack transfer size\n", __func__);
@@ -166,12 +169,10 @@ void u3v_destroy_control(struct u3v_device *u3v) {
  * @transfer_size: number of bytes to read
  * @bytes_read: number of bytes read
  * @address: camera's memory address to be read
- * @kernel_buffer: kernel buffer to be read into, can be NULL if
- * user_buffer is not NULL
- * @user_buffer: user buffer to be read into, can be NULL if
- * kernel_buffer is not NULL
+ * @buffer: kernel buffer to be read into
  */
-int u3v_read_memory(struct u3v_control *ctrl, _Uint32t transfer_size, _Uint32t *bytes_read, _Uint64t address, void *kernel_buffer, void *user_buffer) {
+int u3v_read_memory(struct u3v_control *ctrl, _Uint32t transfer_size, _Uint32t *bytes_read, _Uint64t address, void *buffer) {
+
 	const int max_bytes_per_read = ctrl->max_ack_transfer_size - sizeof(struct ack_header);
 	size_t cmd_buffer_size = sizeof(struct command_header) + sizeof(struct read_mem_cmd_payload);
 	size_t ack_buffer_size = sizeof(struct ack_header) + transfer_size;
@@ -185,28 +186,19 @@ int u3v_read_memory(struct u3v_control *ctrl, _Uint32t transfer_size, _Uint32t *
 	bool request_acknowledged = false;
 	usbd_endpoint_descriptor_t *in_endpoint, *out_endpoint;
 
-	if (bytes_read != NULL)
-		*bytes_read = 0;
+    if (buffer == NULL)
+            return -EINVAL;
 
-	if (transfer_size == 0)
-		return 0;
 
-	if (ctrl == NULL)
-		return U3V_ERR_NO_CONTROL_INTERFACE;
+    if (ctrl == NULL)
+            return U3V_ERR_NO_CONTROL_INTERFACE;
 
-	if (kernel_buffer != NULL && user_buffer != NULL) {
-		//dev_err(dev, "%s: Must provide either a kernel_buffer or a user buffer, not both\n", __func__);
-		return -EINVAL;
-	}
+    if (bytes_read != NULL)
+    	*bytes_read = 0;
 
-	if (cmd_buffer_size > ctrl->max_cmd_transfer_size) {
-		//dev_err(dev, "%s: Requested command buffer of size %zu, but maximum size is %d\n", __func__, cmd_buffer_size, ctrl->max_cmd_transfer_size);
-		return -EINVAL;
-	}
-	if (max_bytes_per_read <= 0) {
-		//dev_err(dev, "%s: Requested ack buffer of size <= 0\n", __func__);
-		return -EINVAL;
-	}
+    if (transfer_size == 0)
+            return 0;
+
 
 	//dev_dbg(dev, "u3v_read_memory: address = %llX, transfer_size = %d", address, transfer_size);
 
@@ -224,8 +216,10 @@ int u3v_read_memory(struct u3v_control *ctrl, _Uint32t transfer_size, _Uint32t *
         command->header.prefix = ENDIAN_LE32(U3V_CONTROL_PREFIX);
         command->header.flags = ENDIAN_LE16(U3V_REQUEST_ACK);
         command->header.cmd = ENDIAN_LE16(READMEM_CMD);
-        command->header.length =
-            ENDIAN_LE16(sizeof(struct read_mem_cmd_payload));
+        command->header.length = ENDIAN_LE16(sizeof(struct read_mem_cmd_payload));
+        if (ctrl->request_id + 1 == ctrl->max_request_id) {
+                ctrl->request_id = 0;
+        }
         command->header.request_id = ENDIAN_LE16(++(ctrl->request_id));
         payload->address = address + total_bytes_read;
         payload->reserved = 0;
@@ -244,7 +238,7 @@ int u3v_read_memory(struct u3v_control *ctrl, _Uint32t transfer_size, _Uint32t *
 		while (!request_acknowledged) {
 			/* reset */
 			actual = 0;
-			ack_buffer_size = sizeof(struct ack_header) + bytes_this_iteration;
+            ack_buffer_size = sizeof(struct ack_header) + bytes_this_iteration; max((size_t)(bytes_this_iteration), sizeof(struct pending_ack_payload));
 			memset(ctrl->ack_buffer, 0, ack_buffer_size);
 
 			/* read the ack */
@@ -319,10 +313,7 @@ int u3v_read_memory(struct u3v_control *ctrl, _Uint32t transfer_size, _Uint32t *
 		//dev_err(dev, "%s: total_bytes != xfer: total is %d and xfer is %d", __func__, total_bytes_read, transfer_size);
 
 	/* Extract the data */
-	if (kernel_buffer != NULL)
-		memcpy(kernel_buffer, ack->payload, total_bytes_read);
-	if (user_buffer != NULL)
-		memcpy(user_buffer, ack->payload, total_bytes_read);
+    memcpy(buffer, ack->payload, total_bytes_read);
 
 exit:
 	if (bytes_read != NULL)
@@ -337,12 +328,9 @@ exit:
  * @transfer_size: number of bytes to write
  * @bytes_written: number of bytes written
  * @address: camera's memory address to be written to
- * @kernel_buffer: kernel buffer to be written from, can be NULL if
- * user_buffer is not NULL
- * @user_buffer: user buffer to be written from, can be NULL if
- * kernel_buffer is not NULL
+ * @buffer: kernel buffer to be written from
  */
-int u3v_write_memory(struct u3v_control *ctrl, _Uint32t transfer_size, _Uint32t *bytes_written, _Uint64t address, const void *kernel_buffer, const void *user_buffer) {
+int u3v_write_memory(struct u3v_control *ctrl, _Uint32t transfer_size, _Uint32t *bytes_written, _Uint64t address, const void *buffer) {
     int ret = 0;
     int total_bytes_written = 0;
 	const int max_bytes_per_write = ctrl->max_cmd_transfer_size - (sizeof(struct command_header) + sizeof(struct write_mem_cmd_payload));
@@ -394,12 +382,13 @@ int u3v_write_memory(struct u3v_control *ctrl, _Uint32t transfer_size, _Uint32t 
 		command->header.flags = ENDIAN_LE16(U3V_REQUEST_ACK);
 		command->header.cmd = ENDIAN_LE16(WRITEMEM_CMD);
 		command->header.length = ENDIAN_LE16(sizeof(struct write_mem_cmd_payload) + bytes_this_iteration);
+		if (ctrl->request_id + 1 == ctrl->max_request_id) {
+			ctrl->request_id = 0;
+		}
 		command->header.request_id = ENDIAN_LE16(++(ctrl->request_id));
 		payload->address = ENDIAN_LE16(address + total_bytes_written);
 
-		if (kernel_buffer != NULL) {
-			memcpy(payload->data, (_Uint8t *)(kernel_buffer + total_bytes_written), bytes_this_iteration);
-		}
+        memcpy(payload->data, (_Uint8t *)(buffer + total_bytes_written), bytes_this_iteration);
 
 		cmd_buffer_size = sizeof(struct command_header) + sizeof(struct write_mem_cmd_payload) + bytes_this_iteration;
 

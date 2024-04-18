@@ -103,11 +103,11 @@ struct u3v_device_info {
 	uint8_t previously_initialized;
 	uint32_t host_byte_alignment;
 	uint32_t os_max_transfer_size;
-	uint64_t sirm_addr;
 	uint32_t transfer_alignment;
 	uint32_t segmented_xfer_supported;
 	uint32_t segmented_xfer_enabled;
 	uint32_t legacy_ctrl_ep_stall_enabled;
+	uint64_t sirm_addr;
 };
 
 

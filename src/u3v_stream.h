@@ -37,8 +37,6 @@ struct urb_info {
 	_Uint32t urb_index;
 };
 
-
-
 struct buffer_entry {
 	struct urb_info *urb_info_array;
 	pthread_mutex_t mutex_buffer_complete;
@@ -55,6 +53,8 @@ struct buffer_entry {
 	_Uint32t transfer2_received_size;
 	_Uint32t status;
 	_Uint64t buffer_id;
+    buffer_entry* next; // Pointer to the next buffer entry
+    buffer_entry* prev; // Pointer to the previous buffer entry
 };
 
 struct u3v_stream_buffer_config {
@@ -77,20 +77,18 @@ struct u3v_stream {
 	bool wait_in_progress;
 	pthread_mutex_t stream_lock;
 	_Uint64t next_buffer_id;
+    buffer_entry* head; // Pointer to the head of the buffer queue
+    buffer_entry* tail; // Pointer to the tail of the buffer queue
 };
 
+void initialize_queue(u3v_stream *stream);
+void enqueue_buffer(u3v_stream *stream, buffer_entry *entry);
+buffer_entry* dequeue_buffer(u3v_stream *stream);
+bool is_queue_empty(u3v_stream *stream);
+buffer_entry* create_buffer_entry(u3v_stream *stream);
+void destroy_buffer_entry(buffer_entry *entry);
 int u3v_create_stream(struct u3v_device *u3v, struct usbd_interface *intf, _Uint64t image_buffer_size, _Uint64t chunk_data_buffer_size, _Uint32t max_leader_size, _Uint32t max_trailer_size, _Uint32t payload_size, _Uint32t payload_count, _Uint32t transfer1_size, _Uint32t transfer2_size);
-int u3v_destroy_stream(struct u3v_device *u3v);
-static int set_buffer_sizes(struct u3v_stream *stream, _Uint64t image_buffer_size, _Uint64t chunk_data_buffer_size, _Uint32t max_leader_size, _Uint32t max_trailer_size, _Uint32t payload_size, _Uint32t payload_count, _Uint32t transfer1_size, _Uint32t transfer2_size);
-int u3v_configure_buffer(struct u3v_stream *stream, void *user_image_buffer, void *user_chunk_data_buffer, _Uint64t *buffer_id);
-static int create_buffer_entry(struct u3v_stream *stream, void *user_image_buffer, void *user_chunk_data_buffer, _Uint64t *buffer_id);
-int u3v_unconfigure_buffer(struct u3v_stream *stream, _Uint64t buffer_id);
-static int destroy_buffer(struct u3v_stream *stream, _Uint64t buffer_id);
-int u3v_queue_buffer(struct u3v_stream *stream, _Uint64t buffer_id);
-static void reset_counters(struct buffer_entry *entry);
-static int map_urb_buffer(struct u3v_stream *stream, struct urb_info *urb_info, void *user_buffer, size_t buffer_size, size_t offset, size_t urb_buffer_size, size_t min_expected_size);
-static int set_buffer_sizes(struct u3v_stream *stream, _Uint64t image_buffer_size, _Uint64t chunk_data_buffer_size, _Uint32t max_leader_size, _Uint32t max_trailer_size, _Uint32t payload_size, _Uint32t payload_count, _Uint32t transfer1_size, _Uint32t transfer2_size);
-static int submit_stream_urb(struct u3v_stream *stream, struct urb_info *urb_info);
-static int allocate_urb_buffer(struct u3v_stream *stream, struct urb_info *urb_info, size_t size, size_t min_expected_size);
+static int set_buffer_sizes(struct u3v_stream *stream,_Uint64t image_buffer_size, _Uint64t chunk_data_buffer_size, _Uint32t max_leader_size, _Uint32t max_trailer_size,_Uint32t payload_size, _Uint32t payload_count, _Uint32t transfer1_size, _Uint32t transfer2_size);
+
 #endif
 
