@@ -178,7 +178,7 @@ int u3v_create_stream(struct u3v_device *u3v, struct usbd_interface *intf,
         buffer_entry* entry = create_buffer_entry(stream);
         if (entry == NULL) {
             // Handle allocation failure
-            destroy_stream(stream); // Free previously allocated entries and stream
+        	u3v_destroy_stream(u3v); // Free previously allocated entries and stream
             return -ENOMEM;
         }
         enqueue_buffer(stream, entry);
@@ -214,4 +214,91 @@ static int set_buffer_sizes(struct u3v_stream *stream,
     stream->config.payload_count = payload_count;
 
     return 0;
+}
+
+int u3v_destroy_stream(struct u3v_device *u3v) {
+	struct u3v_stream *stream;
+	int ret;
+
+	if (u3v == NULL) {
+		return -EINVAL;
+	}
+
+	stream = (struct u3v_stream *)(u3v->stream_info.interface_ptr);
+
+	if (stream == NULL) {
+		return U3V_ERR_STREAM_NOT_CONFIGURED;
+	}
+
+	pthread_mutex_lock(&stream->stream_lock);
+
+	ret = reset_stream(stream);
+	if (ret != 0) {
+		goto error;
+	}
+
+	// Wait for ongoing ioctls to complete
+	wait_for_completion(u3v->stream_info.mutex_ioctl_complete, u3v->stream_info.cond_ioctl_complete, u3v->stream_info.done_ioctl_complete);
+
+	// Free all buffer entries in the linked list
+	while (!is_queue_empty(stream)) {
+		buffer_entry *entry = dequeue_buffer(stream);
+		destroy_buffer_entry(entry);
+	}
+
+	pthread_mutex_unlock(&stream->stream_lock);
+
+	// Free the stream structure
+	free(stream);
+	u3v->stream_info.interface_ptr = NULL;
+	return 0;
+
+error:
+	pthread_mutex_unlock(&stream->stream_lock);
+    return ret;
+}
+
+static int reset_stream(struct u3v_stream *stream) {
+	struct u3v_device *u3v;
+	struct usbd_device *udev;
+	uint8_t ep_addr;
+	int dummy_size = 32;
+	uint8_t dummy_buffer[dummy_size];
+	int actual = 0;
+	int ret = 0;
+
+	if (stream == NULL) {
+		return -EINVAL;
+	}
+
+	u3v = stream->u3v_dev;
+	if (!u3v->device_connected) {
+		return 0;
+	}
+
+	udev = u3v->udev;
+	ep_addr = u3v->stream_info.bulk_in->bEndpointAddress;
+
+	// QNX specific: Aborting URBs
+	while (!is_queue_empty(stream)) {
+		buffer_entry *entry = dequeue_buffer(stream);
+		for (int i = 0; i < entry->urb_info_count; i++) {
+			usbd_urb *urb = entry->urb_info_array[i].purb;
+			if (urb) {
+				usbd_abort_pipe(stream->streaming_pipe); // Abort URB on the streaming pipe
+				usbd_urb_status(urb, NULL, NULL); // Clear the URB status
+			}
+		}
+		enqueue_buffer(stream, entry); // Re-enqueue the buffer entry
+	}
+
+	// QNX specific: Resetting the streaming pipe
+	if (!u3v->stalling_disabled) {
+		ret = usbd_reset_pipe(stream->streaming_pipe);
+		if (ret != EOK) {
+    	 //dev_err(u3v->device, "%s: Error %d resetting pipe for ep %02X\n", __func__, ret, ep_addr);
+		}
+	}
+
+ 	return ret;
 }

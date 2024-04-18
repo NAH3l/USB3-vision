@@ -89,6 +89,7 @@ buffer_entry* create_buffer_entry(u3v_stream *stream);
 void destroy_buffer_entry(buffer_entry *entry);
 int u3v_create_stream(struct u3v_device *u3v, struct usbd_interface *intf, _Uint64t image_buffer_size, _Uint64t chunk_data_buffer_size, _Uint32t max_leader_size, _Uint32t max_trailer_size, _Uint32t payload_size, _Uint32t payload_count, _Uint32t transfer1_size, _Uint32t transfer2_size);
 static int set_buffer_sizes(struct u3v_stream *stream,_Uint64t image_buffer_size, _Uint64t chunk_data_buffer_size, _Uint32t max_leader_size, _Uint32t max_trailer_size,_Uint32t payload_size, _Uint32t payload_count, _Uint32t transfer1_size, _Uint32t transfer2_size);
-
+int u3v_destroy_stream(struct u3v_device *u3v);
+static int reset_stream(struct u3v_stream *stream);
 #endif
 
