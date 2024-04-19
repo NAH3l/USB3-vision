@@ -1,6 +1,5 @@
 #include <errno.h>
 #include <sys/usbdi.h>
-#include <sys/usb100.h>
 #include <iostream>
 #include <stdlib.h>
 #include <gulliver.h>
@@ -12,7 +11,11 @@
 #include <unistd.h>
 #include <sys/syspage.h>
 #include <atomic.h>
-#include <xmlparse.h>
+
+
+#include <sys/iofunc.h>
+#include <sys/dispatch.h>
+#include <sys/resmgr.h>
 
 #include "u3v.h"
 #include "u3v_shared.h"
@@ -23,7 +26,6 @@
 #include "video_class_code.h"
 
 
-
-int main(){
+int main(void) {
 
 }
