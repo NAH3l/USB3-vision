@@ -388,7 +388,7 @@ int u3v_write_memory(struct u3v_control *ctrl, _Uint32t transfer_size, _Uint32t 
 		command->header.request_id = ENDIAN_LE16(++(ctrl->request_id));
 		payload->address = ENDIAN_LE16(address + total_bytes_written);
 
-        memcpy(payload->data, (_Uint8t *)(buffer + total_bytes_written), bytes_this_iteration);
+        memcpy(payload->data, (uint8_t *)(buffer + total_bytes_written), bytes_this_iteration);
 
 		cmd_buffer_size = sizeof(struct command_header) + sizeof(struct write_mem_cmd_payload) + bytes_this_iteration;
 

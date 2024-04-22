@@ -16,6 +16,8 @@
 #include <sys/syspage.h>
 #include <atomic.h>
 #include <xmlparse.h>
+#include <sys/iofunc.h>
+#include <sys/dispatch.h>
 
 #include "u3v.h"
 #include "u3v_shared.h"
@@ -24,7 +26,11 @@
 #include "u3v_control.h"
 #include "u3v_interrupt.h"
 #include "video_class_code.h"
+#include "u3v_sysfile.h"
 
+/* Camera info */
+#define VENDOR_ID_BAUMER_VCXU          0x2825
+#define PRODUCT_ID_BAUMER_VCXU         0x1711
 /* General device info */
 #define DRIVER_DESC 					"USB3 Vision Driver"
 #define U3V_DEVICE_CLASS 				0xEF
@@ -43,6 +49,8 @@
 #define U3V_REQUEST_ACK 				0x4000
 #define U3V_TIMEOUT 					5000
 #define	U3V_DEV_DISCONNECTED 			1
+
+
 
 struct completion {
   pthread_mutex_t mutex;
@@ -64,11 +72,25 @@ struct u3v_interface_info {
 	uint8_t idx;
 };
 
+
 /*
  * A copy of this structure exists for each U3V device to contain its
  * private data.
  */
 struct u3v_device {
+    /* Resource manager data, hdr must be first! */
+    iofunc_attr_t          hdr[UVC_MAX_VS_COUNT];
+    int                    resmgr_id[UVC_MAX_VS_COUNT];
+    resmgr_io_funcs_t      io_funcs[UVC_MAX_VS_COUNT];
+    resmgr_connect_funcs_t connect_funcs[UVC_MAX_VS_COUNT];
+    iofunc_funcs_t         ocb_funcs[UVC_MAX_VS_COUNT];
+    iofunc_mount_t         io_mount[UVC_MAX_VS_COUNT];
+    resmgr_attr_t          rattr[UVC_MAX_VS_COUNT];
+
+    /* Sysfs emulation data */
+    struct u3v_sysfs_device* sysfs[UVC_MAX_VS_COUNT];
+
+
 	struct u3v_interface_info control_info;
 	struct u3v_interface_info event_info;
 	struct u3v_interface_info stream_info;
@@ -82,6 +104,7 @@ struct u3v_device {
 	bool stalling_disabled;
 	bool device_connected;
 	int device_state;
+	int total_vs_devices;
 };
 
 /*
@@ -89,6 +112,15 @@ struct u3v_device {
  * device attributes
  */
 struct u3v_device_info {
+
+    /* USB data */
+    uint16_t vendor_id;
+    uint16_t device_id;
+    char     vendor_id_str[256];
+    char     device_id_str[256];
+    char     serial_str[256];
+    int      port_speed;
+
 	uint32_t gen_cp_version;
 	uint32_t u3v_version;
 	char device_guid[U3V_MAX_STR];
