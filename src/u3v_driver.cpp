@@ -24,7 +24,6 @@
 #include "video_class_code.h"
 
 
-dispatch_t*        dispatch;
 
 struct usbd_connection* u3v_connection;
 uvc_device_mapping_t devmap[MAX_UVC_DEVICES];

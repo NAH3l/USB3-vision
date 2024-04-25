@@ -39,51 +39,54 @@ unsigned int rounddown(unsigned int x, unsigned int y) {
 }
 
 /* Reproduis la fonction usb_control_msg de Linux */
-int usb_control_msg(struct usbd_device *dev, struct usbd_pipe *pipe, uint8_t request, uint8_t requesttype, uint16_t value, uint16_t index, void *data, uint16_t size, int timeout) {
-    struct usbd_urb *urb;
-    int ret;
+int qnx_control_msg(struct usbd_device *device, uint8_t request, uint8_t requesttype, uint16_t value, uint16_t index, void *data, uint16_t size, int timeout) {
+    // Obtenir le descripteur de l'endpoint 0 (contrôle)
+    struct usbd_desc_node *node;
+    usbd_descriptors_t *desc = usbd_parse_descriptors(device, NULL, USB_DESC_ENDPOINT, index, &node);
 
-    // Allocation de l'URB
-    urb = usbd_alloc_urb(NULL);
+    // Ouvrir le pipe
+    struct usbd_pipe *pipe;
+    int ret = usbd_open_pipe(device, desc, &pipe);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    // Allouer un URB
+    struct usbd_urb *urb = usbd_alloc_urb(NULL);
     if (!urb) {
-        return -ENOMEM; // Insufficient memory available
+        usbd_close_pipe(pipe);
+        return -ENOMEM;
     }
 
-    // Configuration de l'URB pour le message de contrôle
-    ret = usbd_setup_vendor(urb, 0, request, requesttype, value, index, data, size);
+    // Définir la direction du transfert en fonction du type de requête
+    uint32_t flags = (requesttype & URB_DIR_IN) ? URB_DIR_IN : URB_DIR_OUT ;
+
+    // Configurer l'URB avec usbd_setup_vendor()
+    ret = usbd_setup_vendor(urb, flags, request, requesttype, value, index, data, size);
     if (ret != EOK) {
         usbd_free_urb(urb);
+        usbd_close_pipe(pipe);
         return ret;
     }
 
-    // Soumission de l'URB
+    // Envoyer la requête et attendre la fin
     ret = usbd_io(urb, pipe, NULL, NULL, timeout);
-    if (ret != EOK) {
-        usbd_free_urb(urb);
-        return ret;
-    }
 
-    // Attente de la complétion de l'URB
-    ret = usbd_urb_status(urb, NULL, NULL);
-    if (ret != EOK) {
-        // Si une erreur survient pendant l'attente, libérer l'URB
-        usbd_free_urb(urb);
-        return ret;
-    }
+    // Obtenir le statut et la longueur du transfert
+    uint32_t status, act_length;
+    usbd_urb_status(urb, &status, &act_length);
 
-    // Récupération du nombre de bytes transférés
-    uint32_t len;
-    ret = usbd_urb_status(urb, NULL, &len);
-    if (ret != EOK) {
-        // Si une erreur survient pendant l'attente, libérer l'URB
-        usbd_free_urb(urb);
-        return ret;
-    }
-
-    // Libération de l'URB
+    // Libérer les ressources
     usbd_free_urb(urb);
+    usbd_close_pipe(pipe);
 
-    return len;
+    // Retourner le nombre d'octets transférés en cas de succès
+    if (status & USBD_STATUS_CMP) {
+        return act_length;
+    } else {
+        // Retourner un code d'erreur en cas d'échec
+        return -EIO;
+    }
 }
 
 /* Reproduis la fonction usb_bulk_msg de Linux */

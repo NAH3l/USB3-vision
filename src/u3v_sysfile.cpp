@@ -28,14 +28,14 @@ dispatch_t*        dispatch;
 extern uvc_device_mapping_t devmap[MAX_UVC_DEVICES];
 
 char* sysfs_files[U3V_SYSFS_FILES]= {
-    "/sys/class/video4linux/video%d/dev",
-    "/sys/class/video4linux/video%d/index",
-    "/sys/class/video4linux/video%d/name",
-    "/sys/class/video4linux/video%d/uevent",
-    "/sys/class/video4linux/video%d/idVendor",
-    "/sys/class/video4linux/video%d/idProduct",
-    "/sys/class/video4linux/video%d/speed",
-    "/sys/class/video4linux/video%d/device/modalias",
+    "/sys/class/u3v/video%d/dev",
+    "/sys/class/u3v/video%d/index",
+    "/sys/class/u3v/video%d/name",
+    "/sys/class/u3v/video%d/uevent",
+    "/sys/class/u3v/video%d/idVendor",
+    "/sys/class/u3v/video%d/idProduct",
+    "/sys/class/u3v/video%d/speed",
+    "/sys/class/u3v/video%d/device/modalias",
     "/sys/dev/char/%d:%d"
 };
 
@@ -204,7 +204,7 @@ int uvc_read_sysfs(resmgr_context_t *ctp, io_read_t *msg, uvc_ocb_t *ocb) {
         return ENODEV;
     }
 
-    //nleft=ocb->hdr.attr->hdr->nbytes-ocb->hdr.offset;
+    nleft=ocb->hdr.attr->nbytes-ocb->hdr.offset;
     nbytes=min(msg->i.nbytes, nleft);
     if (nbytes>0) {
          SETIOV(ctp->iov, &dev->sysfs[ocb->subdev]->filedata[fileno][ocb->hdr.offset], nbytes);
@@ -239,8 +239,8 @@ int uvc_register_sysfs(struct u3v_device* dev, int mapid) {
     for (it=0; it<U3V_SYSFS_FILES; it++) {
         memset(&sysfs->ocb_funcs[it], 0x00, sizeof(sysfs->ocb_funcs[it]));
         sysfs->ocb_funcs[it].nfuncs=_IOFUNC_NFUNCS;
-        sysfs->ocb_funcs[it].ocb_calloc=_uvc_sysfs_ocb_calloc;
-        sysfs->ocb_funcs[it].ocb_free=_uvc_sysfs_ocb_free;
+        sysfs->ocb_funcs[it].ocb_calloc = (iofunc_ocb_t* (*)(resmgr_context_t*, iofunc_attr_t*))_uvc_sysfs_ocb_calloc;
+        sysfs->ocb_funcs[it].ocb_free = (void (*)(iofunc_ocb_t*))_uvc_sysfs_ocb_free;
         memset(&sysfs->io_mount[it], 0x00, sizeof(sysfs->io_mount[it]));
         sysfs->io_mount[it].funcs=&sysfs->ocb_funcs[it];
 
@@ -251,8 +251,8 @@ int uvc_register_sysfs(struct u3v_device* dev, int mapid) {
         if (it==U3V_SYSFS_FILE_DEV_CHAR) {
             sysfs->connect_funcs[it].readlink=uvc_readlink_sysfs;
         }
-        sysfs->io_funcs[it].read=uvc_read_sysfs;
-        sysfs->io_funcs[it].close_ocb=uvc_close_sysfs;
+        sysfs->io_funcs[it].read = (int (*)(resmgr_context_t*, io_read_t*, _iofunc_ocb*))uvc_read_sysfs;
+        sysfs->io_funcs[it].close_ocb = (int (*)(resmgr_context_t*, void*, _iofunc_ocb*))uvc_close_sysfs;
 
         sysfs->hdr[it].mount=&sysfs->io_mount[it];
 

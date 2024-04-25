@@ -131,7 +131,6 @@ struct u3v_device_info {
 	char manufacturer_info[U3V_MAX_STR];
 	char serial_number_u3v[U3V_MAX_STR];
 	char user_defined_name[U3V_MAX_STR];
-	uint8_t speed_support;
 	uint8_t previously_initialized;
 	uint32_t host_byte_alignment;
 	uint32_t os_max_transfer_size;
@@ -149,6 +148,7 @@ int max(size_t a, size_t b);
 
 /* Function for usb transfer */
 int usb_bulk_msg(struct usbd_device *device, unsigned int pipe, void *data, int len, int *actual_length, int timeout);
+int qnx_control_msg(struct usbd_device *device, uint8_t request, uint8_t requesttype, uint16_t value, uint16_t index, void *data, uint16_t size, int timeout);
 unsigned int qnx_usb_rcvbulkpipe(struct usbd_device *device, unsigned int endpoint_num);
 unsigned int qnx_usb_sndbulkpipe(struct usbd_device *device, unsigned int endpoint_num);
 int qnx_usb_endpoint_num(const usbd_endpoint_descriptor_t *epd);
@@ -160,3 +160,13 @@ void wait_for_completion(pthread_mutex_t mutex, pthread_cond_t cond, int done);
 void completion_complete_all(pthread_mutex_t mutex, pthread_cond_t cond, int done);
 
 #endif /*  _U3V_H_ */
+
+
+
+
+
+
+
+
+
+

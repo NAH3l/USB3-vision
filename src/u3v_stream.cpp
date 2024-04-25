@@ -145,10 +145,7 @@ buffer_entry* create_buffer_entry(u3v_stream *stream) {
 	return entry;
 }
 
-int u3v_create_stream(struct u3v_device *u3v, struct usbd_interface *intf,
-                      _Uint64t image_buffer_size, _Uint64t chunk_data_buffer_size,
-                      _Uint32t max_leader_size, _Uint32t max_trailer_size, _Uint32t payload_size,
-                      _Uint32t payload_count, _Uint32t transfer1_size, _Uint32t transfer2_size) {
+int u3v_create_stream(struct u3v_device *u3v, usbd_interface_descriptor_t *intf, _Uint64t image_buffer_size, _Uint64t chunk_data_buffer_size, _Uint32t max_leader_size, _Uint32t max_trailer_size, _Uint32t payload_size, _Uint32t payload_count, _Uint32t transfer1_size, _Uint32t transfer2_size) {
 
     struct u3v_stream *stream = NULL;
     int ret = 0;

@@ -1,0 +1,106 @@
+LE PROTOCOL USB3 VISION 
+
+- Device Control
+
+Le contrôle d'un appareil USB3 Vision, comme une caméra, repose sur plusieurs éléments clés :
+Interfaces de contrôle :
+
+Endpoint de contrôle 0 : Ce point de terminaison standard USB permet de contrôler les aspects basiques de l'appareil.
+
+Interface de contrôle de l'appareil (DCI) : Cette interface spécifique à USB3 Vision permet de gérer les fonctionnalités propres à la vision, comme la configuration de l'image, le déclenchement de l’acquisition et le contrôle des paramètres de la caméra.
+
+Interface d'événements de l'appareil (DEI) (optionnelle) : Cette interface permet à l'appareil d’envoyer des événements asynchrones à l'hôte, tels que des changements d'état ou des erreurs.
+
+Protocole de contrôle :
+USB3 Vision Control Protocol (U3VCP) : Basé sur le protocole de contrôle générique GenCP de GenICam, il définit les commandes et les réponses utilisées pour communiquer avec l'appareil.
+
+Structure de transfert de données : Les commandes et les accusés de réception suivent une structure spécifique avec un préfixe, des données de commande communes (CCD), des données de commande spécifiques (SCD) et un suffixe.
+
+Codes d'état : Les réponses de l'appareil incluent des codes d'état pour indiquer le succès ou l'échec des commandes, ainsi que des informations sur les erreurs.
+
+Registres de démarrage (BRM) :
+Technology Agnostic Bootstrap Register Map (ABRM) : Cette partie du BRM, définie par GenCP, contient des informations générales sur l'appareil, telles que le nom du fabricant, le nom du modèle et la version du firmware.
+
+Technology Specific Bootstrap Register Map (SBRM) : Cette partie du BRM, spécifique à USB3 Vision, contient des informations et des paramètres liés aux fonctionnalités de vision, tels que l'adresse et la taille des cartes de registre d'interface de streaming (SIRM) et d'interface d'événements (EIRM), le nombre de canaux de flux et la vitesse actuelle du lien USB.
+
+Flux de contrôle :
+
+Envoi de commande : L'hôte envoie une commande U3VCP à l'appareil via l'endpoint OUT de la DCI.
+
+Traitement de la commande : L'appareil traite la commande et génère une réponse.
+
+Envoi de l'accusé de réception : L'appareil envoie un accusé de réception U3VCP à l'hôte via l'endpoint IN de la DCI, indiquant le succès ou l'échec de la commande et incluant éventuellement des données supplémentaires.
+
+Fonctionnalités de contrôle :
+
+GenICam XML : Le fichier de description XML de l'appareil, conforme à GenICam, définit les fonctionnalités de l'appareil et la cartographie des registres. Le driver utilise ces informations pour contrôler les fonctionnalités de l'appareil via U3VCP.
+
+Fonctionnalités standard pour les caméras : La norme USB3 Vision définit un ensemble de fonctionnalités obligatoires pour les caméras, telles que la largeur et la hauteur de l'image, le format des pixels et le mode d'acquisition.
+
+Fonctionnalités recommandées : Le document "GenICam Standard Feature Naming Convention (SFNC)" propose des noms de fonctionnalités recommandés pour d'autres fonctionnalités, assurant l'interopérabilité entre les appareils.
+
+Gestion des événements :
+
+Evénements U3VCP : L'appareil peut envoyer des événements asynchrones à l'hôte via la DEI, tels que des changements d'état ou des erreurs.
+
+Evénements GenICam : Si l'appareil utilise GenICam, les événements sont interprétés via le mécanisme d'événements standard de GenICam.
+
+- Streaming de données avec USB3 Vision :
+
+Le streaming de données, typiquement des images capturées par une caméra, est un aspect crucial de la norme USB3 Vision. Il s'appuie sur une structure et un protocole spécifiques pour assurer un transfert efficace et fiable des données vers l'hôte.
+
+Mécanisme de streaming : 
+- Transfert en mode Bulk : USB3 Vision utilise le mode de transfert en bloc USB pour le streaming de données, garantissant la livraison et la fiabilité des données.
+- Structure Leader-Payload-Trailer : Chaque bloc de données transmis est divisé en trois sections :
+Leader : Contient des informations sur le type de charge utile, l'ID du bloc, l'horodatage et d'autres métadonnées.
+Payload (données utiles) : Contient les données réelles à transmettre, telles que les pixels de l'image.
+Trailer : Contient des informations sur l'état du transfert, la taille réelle des données utiles et d'autres métadonnées.
+
+Contrôle du streaming :
+- Streaming Interface Register Map (SIRM) : Un ensemble de registres de démarrage permet à l'hôte de configurer et de contrôler le streaming. Ces registres définissent la taille attendue du leader, du payload et du trailer, ainsi que le nombre de transferts de payload et le mode de payload utilisé.
+- Activation et désactivation du flux : L'hôte active le flux de données en définissant le bit "Stream Enable" dans le registre SI Control. Il peut ensuite désactiver le flux en effaçant ce bit.
+
+Types de charge utile :
+- Image : Ce type de charge utile est utilisé pour transmettre des images non compressées au format raster. Le leader inclut des informations sur le format de pixel, la taille de l'image et le décalage ROI.
+- Image Extended Chunk : Permet d'ajouter des métadonnées sous forme de "Chunk Data" à la charge utile d'image.
+- Chunk : Mode générique pour transmettre n'importe quelle combinaison de "chunks" de données.
+- GenDC Container : Utilisé pour le mode de transfert GenDC Container, le payload contient un conteneur GenDC complet avec le descripteur et les données associées.
+- GenDC Component Data : Utilisé pour les modes de transfert GenDC Serial Flow et Parallel Flow, le payload contient uniquement les données de composant GenDC, tandis que le descripteur GenDC est inclus dans le leader et/ou le trailer.
+
+Formats de pixels :
+- GenICam Pixel Format Naming Convention (PFNC) : USB3 Vision utilise PFNC pour nommer et décrire les formats de pixels, assurant l'interopérabilité.
+- Formats recommandés : La norme recommande un ensemble de formats de pixels courants, tels que Mono8, BayerGR8, BGR8 et YCbCr8.
+- Formats personnalisés : Les fabricants peuvent définir des formats de pixels personnalisés en suivant les règles PFNC.
+
+Gestion des débordements :
+- Données de payload partiellement supprimées : Si l'appareil doit supprimer des données de payload, il transmet des paquets de longueur nulle ou courts pour maintenir la synchronisation avec le récepteur.
+- Débordement de données de payload : Si l'appareil a plus de données que la taille du bloc de données ne le permet, il indique un débordement dans le trailer.
+- Bloc de données entièrement supprimé : Si un bloc de données complet est supprimé, l'ID du bloc est ignoré pour permettre au récepteur de détecter la perte de données.
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Changement Linux -> QNX 
+
+Linux :                                                                   QNX :
+u3v_control.c 						                                      u3v_control.cpp
+kzalloc(<size>, GFP_KERNEL)						                          malloc(size_t size)
+kfree(const void *ptr)								                      free(void* ptr)
+mutex_init(struct mutex *mtx)					                          pthread_mutex_init(pthread_mutex_t* mutex,const pthread_mutexattr_t* attr) 
+mutex_lock(struct mutex *mtx)				                              pthread_mutex_lock(pthread_mutex_t* mutex )
+mutex_unlock(struct mutex *mtx)					                          pthread_mutex_unlock(pthread_mutex_t* mutex )
+le32_to_cpu							                                      ENDIAN_LE32
+le16_to_cpu						                                          ENDIAN_LE16
+cpu_to_le32							                                      ENDIAN_LE32
+cpu_to_le16							                                      ENDIAN_LE16
+wait_for_completion	(struct completion *)				                  wait_for_completion(struct completion *)
+usb_bulk_msg(struct usb_device * usb_dev,                                 usb_bulk_msg(struct usbd_device *dev,)
+			 unsigned int pipe,                                                        struct usbd_pipe *pipe,
+			 void * data,                                                              void *data,
+			 int len,                                                                  int len,
+			 int * actual_length,                                                      int *actual_length,
+			 int timeout)					                                           int timeout
+                                                                                       uint32_t flags,
+																					   struct u3v_device *u3v
+u3v_stream.c 						                                      u3v_stream.cpp
+get_num_pages(uintptr_t addr, size_t num_bytes)		                      get_num_pages(uintptr_t addr, size_t num_bytes)
+init_usb_anchor(struct usb_anchor *anchor)                                init_usb_anchor(struct usb_anchor *anchor)
